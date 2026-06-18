@@ -1,0 +1,105 @@
+{
+  "entities": {
+    "Profile": {
+      "title": "Profile",
+      "description": "User profile details supporting both company and translator roles.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "role": { "type": "string" },
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "createdAt": { "type": "object" },
+        "languages": { "type": "array" },
+        "bio": { "type": "string" },
+        "experience": { "type": "string" },
+        "rate": { "type": "string" },
+        "location": { "type": "string" },
+        "skills": { "type": "array" },
+        "avatarUrl": { "type": "string" },
+        "companyName": { "type": "string" },
+        "website": { "type": "string" },
+        "industry": { "type": "string" },
+        "about": { "type": "string" },
+        "logoUrl": { "type": "string" }
+      },
+      "required": ["uid", "role", "email", "name"]
+    },
+    "Job": {
+      "title": "Job",
+      "description": "Information about a listed translation or interpreting job.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "budget": { "type": "string" },
+        "deadline": { "type": "string" },
+        "languagePair": { "type": "string" },
+        "location": { "type": "string" },
+        "createdAt": { "type": "object" },
+        "companyId": { "type": "string" },
+        "companyName": { "type": "string" },
+        "companyLogoUrl": { "type": "string" },
+        "status": { "type": "string" },
+        "applicantsCount": { "type": "number" },
+        "requirements": { "type": "string" }
+      },
+      "required": ["title", "description", "budget", "deadline", "languagePair", "location", "companyId", "companyName", "status", "applicantsCount"]
+    },
+    "JobApplication": {
+      "title": "JobApplication",
+      "description": "An application submitted by a translator for a job.",
+      "type": "object",
+      "properties": {
+        "jobId": { "type": "string" },
+        "jobTitle": { "type": "string" },
+        "translatorId": { "type": "string" },
+        "translatorName": { "type": "string" },
+        "translatorEmail": { "type": "string" },
+        "translatorLanguages": { "type": "array" },
+        "translatorRate": { "type": "string" },
+        "coverLetter": { "type": "string" },
+        "rateProposal": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "object" },
+        "companyId": { "type": "string" }
+      },
+      "required": ["jobId", "jobTitle", "translatorId", "translatorName", "translatorEmail", "coverLetter", "rateProposal", "status", "companyId"]
+    },
+    "TriggerNotification": {
+      "title": "TriggerNotification",
+      "description": "Email notifications sent by Firebase Functions triggers.",
+      "type": "object",
+      "properties": {
+        "companyId": { "type": "string" },
+        "applicationId": { "type": "string" },
+        "translatorName": { "type": "string" },
+        "jobTitle": { "type": "string" },
+        "subject": { "type": "string" },
+        "summaryText": { "type": "string" },
+        "htmlContent": { "type": "string" },
+        "sentAt": { "type": "object" },
+        "toEmail": { "type": "string" }
+      },
+      "required": ["companyId", "applicationId", "translatorName", "jobTitle", "subject", "summaryText", "htmlContent", "sentAt", "toEmail"]
+    }
+  },
+  "firestore": {
+    "profiles/{uid}": {
+      "schema": "Profile",
+      "description": "User profiles labeled by Authentication UID."
+    },
+    "jobs/{jobId}": {
+      "schema": "Job",
+      "description": "A collection of translation positions."
+    },
+    "applications/{appId}": {
+      "schema": "JobApplication",
+      "description": "Translator applications for jobs."
+    },
+    "notifications/{notifId}": {
+      "schema": "TriggerNotification",
+      "description": "Email alerts compiled by Cloud Functions."
+    }
+  }
+}

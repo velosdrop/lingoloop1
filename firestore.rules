@@ -1,0 +1,134 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    function incoming() { 
+      return request.resource.data; 
+    }
+    function existing() { 
+      return resource.data; 
+    }
+    function isSignedIn() { 
+      return request.auth != null; 
+    }
+
+    // Profile validation
+    function isValidProfile(data) {
+      return data.uid is string && data.uid.size() <= 128 &&
+             data.role is string && (data.role == 'company' || data.role == 'translator') &&
+             data.email is string && data.email.size() <= 256 &&
+             data.name is string && data.name.size() <= 200;
+    }
+
+    // Job validation
+    function isValidJob(data) {
+      return data.title is string && data.title.size() <= 200 &&
+             data.description is string && data.description.size() <= 5000 &&
+             data.budget is string && data.budget.size() <= 100 &&
+             data.deadline is string && data.deadline.size() <= 100 &&
+             data.languagePair is string && data.languagePair.size() <= 200 &&
+             data.location is string && data.location.size() <= 200 &&
+             data.companyId is string && data.companyId.size() <= 128 &&
+             data.companyName is string && data.companyName.size() <= 200 &&
+             data.status is string && (data.status == 'open' || data.status == 'closed') &&
+             data.applicantsCount is int;
+    }
+
+    // Application validation
+    function isValidApplication(data) {
+      return data.jobId is string && data.jobId.size() <= 128 &&
+             data.jobTitle is string && data.jobTitle.size() <= 200 &&
+             data.translatorId is string && data.translatorId.size() <= 128 &&
+             data.translatorName is string && data.translatorName.size() <= 200 &&
+             data.translatorEmail is string && data.translatorEmail.size() <= 256 &&
+             data.coverLetter is string && data.coverLetter.size() <= 5000 &&
+             data.rateProposal is string && data.rateProposal.size() <= 100 &&
+             data.status is string && (data.status == 'submitted' || data.status == 'reviewed' || data.status == 'accepted' || data.status == 'declined') &&
+             data.companyId is string && data.companyId.size() <= 128;
+    }
+
+    // Review validation
+    function isValidReview(data) {
+      return data.jobId is string && data.jobId.size() <= 128 &&
+             data.jobTitle is string && data.jobTitle.size() <= 200 &&
+             data.companyId is string && data.companyId.size() <= 128 &&
+             data.companyName is string && data.companyName.size() <= 200 &&
+             data.translatorId is string && data.translatorId.size() <= 128 &&
+             data.translatorName is string && data.translatorName.size() <= 200 &&
+             data.rating is int && data.rating >= 1 && data.rating <= 5 &&
+             data.comment is string && data.comment.size() <= 5000;
+    }
+
+    // Profiles Collection
+    match /profiles/{uid} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && request.auth.uid == uid && isValidProfile(incoming());
+      allow update: if isSignedIn() && request.auth.uid == uid && isValidProfile(incoming()) && incoming().role == existing().role && incoming().uid == existing().uid;
+    }
+
+    // Jobs Collection
+    match /jobs/{jobId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn() && isValidJob(incoming()) && incoming().companyId == request.auth.uid && incoming().applicantsCount == 0;
+      allow update: if (
+        isSignedIn() && (
+          // Action: Edit/toggle job status
+          (existing().companyId == request.auth.uid && 
+           incoming().companyId == existing().companyId && 
+           isValidJob(incoming())) ||
+          // Action: Increment applicant count on apply
+          (incoming().applicantsCount == existing().applicantsCount + 1 &&
+           incoming().diff(existing()).affectedKeys().hasOnly(['applicantsCount']))
+        )
+      );
+    }
+
+    // Applications Collection
+    match /applications/{appId} {
+      allow get: if isSignedIn() && (
+        resource.data.translatorId == request.auth.uid ||
+        resource.data.companyId == request.auth.uid
+      );
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && 
+                    isValidApplication(incoming()) && 
+                    incoming().translatorId == request.auth.uid && 
+                    incoming().status == 'submitted';
+      allow update: if isSignedIn() && (
+        // Action: Company updates status
+        (existing().companyId == request.auth.uid && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['status']) &&
+         (incoming().status == 'reviewed' || incoming().status == 'accepted' || incoming().status == 'declined'))
+      );
+    }
+
+    // Notifications Collection (Simulated email alerts from Cloud Functions)
+    match /notifications/{notifId} {
+      allow get: if isSignedIn() && (
+        resource.data.companyId == request.auth.uid || 
+        resource.data.translatorId == request.auth.uid
+      );
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    // Reviews Collection
+    match /reviews/{reviewId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn() && isValidReview(incoming()) && incoming().companyId == request.auth.uid;
+      allow update, delete: if false;
+    }
+  }
+}

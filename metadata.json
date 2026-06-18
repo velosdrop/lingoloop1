@@ -1,0 +1,6 @@
+{
+  "name": "LingoLoop",
+  "description": "Freelance Chinese translation & interpretation marketplace connecting companies and Translators.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
